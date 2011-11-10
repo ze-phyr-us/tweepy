@@ -4,8 +4,8 @@ import requests
 
 class API(object):
 
-    def __init__(self, auth=None):
-        self.base_url = 'https://api.twitter.com/1'
+    def __init__(self, auth=None, host='api.twitter.com', secure=True, api_version='1'):
+        self.base_url = '%s://%s/%s' % ('https' if secure else 'http', host, api_version)
         self.session = requests.session(auth=auth) if auth else requests
 
     def request(self, method, url, options=None):
