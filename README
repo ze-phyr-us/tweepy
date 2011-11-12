@@ -5,6 +5,8 @@
 /_/    |__/|__/ \___/ \___// .___/ \__, /  
                           /_/     /____/ 
 
+!!! 2.x branch is currently in development and very unstable. !!!
+
 A Python library for accessing the Twitter API.
 
 Website: http://tweepy.github.com/
