@@ -12,7 +12,6 @@ setup(name="tweepy",
       packages = find_packages(),
       requires = [
           'requests',
-          'oauth >= 1.0.1',
       ],
       keywords= "twitter library",
       zip_safe = True)
