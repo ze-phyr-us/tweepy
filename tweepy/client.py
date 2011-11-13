@@ -1,6 +1,7 @@
+import requests
 from urlparse import urljoin
 
-import requests
+from tweepy import Error
 
 class Client(object):
 
@@ -8,22 +9,29 @@ class Client(object):
         self.base_url = '%s://%s/%s' % ('https' if secure else 'http', host, api_version)
         self.session = requests.session(auth=auth) if auth else requests
 
-    def request(self, method, url, options=None):
+    def request(self, method, url, parameters=None):
         """Send a request to API server.
 
         method: type of HTTP method to send (ex: GET, DELETE, POST)
         url: API endpoint URL minus the /<version> part.
-        options: additonal optional options available to any API endpoint.
+        parameters: API parameters to be sent with the request.
         """
         url = urljoin(self.base_url, url) + '.json'
-        resp = self.session.request(method, url)
+        r = self.session.request(method, url, data=parameters)
 
-        if resp.ok is False:
-            resp.raise_for_status()
+        if r.error:
+            print 'HTTPError: ' + str(r.error)
+            raise Error('API request failed. URL=%s' % url, http_error=r.error)
 
-        return resp.content
+        # TODO: parse response
+        return r.content
 
-    def public_timeline(self, **options):
+    def public_timeline(self, **parameters):
         """GET statuses/public_timeline"""
-        return self.request('GET', 'statuses/public_timeline', options)
+        return self.request('GET', 'statuses/public_timeline', parameters)
+
+    def update_status(self, status, **parameters):
+        """POST statuses/update"""
+        parameters.update({'status': status})
+        return self.request('POST', 'statuses/update', parameters)
 
