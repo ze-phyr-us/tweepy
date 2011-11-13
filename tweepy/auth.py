@@ -11,9 +11,9 @@ def oauth_callback(r, consumer, access_token):
     This will get called by Requests when we need to
     authenticate a new request before it is sent.
     """
-    is_form_encoded = isinstance(r.data, dict)
+    is_form_encoded = isinstance(r.data, list)
     if is_form_encoded:
-        parameters = r.data
+        parameters = dict(r.data)
         body = None
     else:
         parameters = None
