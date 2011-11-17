@@ -1,6 +1,6 @@
 import requests
 
-from tweepy import Error
+from tweepy import TweepyError
 from tweepy.oauth2 import Consumer, Request, SignatureMethod_HMAC_SHA1, Token
 
 oauth_signature_method = SignatureMethod_HMAC_SHA1()
@@ -49,7 +49,7 @@ class OAuthFlow(object):
         r = self.session.post(url, headers=param)
 
         if r.error:
-            raise Error('Failed to get OAuth token.', http_error=r.error)
+            raise TweepyError('Failed to get OAuth token.', http_error=r.error)
 
         return Token.from_string(r.content)
 
@@ -66,7 +66,7 @@ class OAuthFlow(object):
 
     def get_access_token(self, verifier=None):
         if self.request_token is None:
-            raise Error('Must get request token first.')
+            raise TweepyError('Must get request token first.')
         self.session.auth = (OAuth, self.consumer, self.request_token)
 
         param = {}

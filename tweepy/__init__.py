@@ -2,7 +2,7 @@ __version__ = '2.0'
 __author__ = 'Joshua Roesslein'
 __license__ = 'MIT'
 
-class Error(RuntimeError):
+class TweepyError(RuntimeError):
     """Tweepy generic error"""
 
     def __init__(self, message, http_error=None):
