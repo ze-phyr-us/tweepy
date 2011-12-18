@@ -2,39 +2,20 @@
 # Copyright 2009-2010 Joshua Roesslein
 # See LICENSE for details.
 
-from urllib2 import Request, urlopen
 import base64
 
 from tweepy import oauth
 from tweepy.error import TweepError
 from tweepy.api import API
+from tweepy.utils import ispy3
+
+if ispy3:
+    from urllib.request import Request, urlopen
+else:
+    from urllib2 import Request, urlopen    
 
 
-class AuthHandler(object):
-
-    def apply_auth(self, url, method, headers, parameters):
-        """Apply authentication headers to request"""
-        raise NotImplementedError
-
-    def get_username(self):
-        """Return the username of the authenticated user"""
-        raise NotImplementedError
-
-
-class BasicAuthHandler(AuthHandler):
-
-    def __init__(self, username, password):
-        self.username = username
-        self._b64up = base64.b64encode('%s:%s' % (username, password))
-
-    def apply_auth(self, url, method, headers, parameters):
-        headers['Authorization'] = 'Basic %s' % self._b64up
-
-    def get_username(self):
-        return self.username
-
-
-class OAuthHandler(AuthHandler):
+class OAuthHandler(object):
     """OAuth authentication handler"""
 
     OAUTH_HOST = 'api.twitter.com'
@@ -74,7 +55,7 @@ class OAuthHandler(AuthHandler):
             request.sign_request(self._sigmethod, self._consumer, None)
             resp = urlopen(Request(url, headers=request.to_header()))
             return oauth.OAuthToken.from_string(resp.read())
-        except Exception, e:
+        except Exception as e:
             raise TweepError(e)
 
     def set_request_token(self, key, secret):
@@ -99,7 +80,7 @@ class OAuthHandler(AuthHandler):
             )
 
             return request.to_url()
-        except Exception, e:
+        except Exception as e:
             raise TweepError(e)
 
     def get_access_token(self, verifier=None):
@@ -122,7 +103,7 @@ class OAuthHandler(AuthHandler):
             resp = urlopen(Request(url, headers=request.to_header()))
             self.access_token = oauth.OAuthToken.from_string(resp.read())
             return self.access_token
-        except Exception, e:
+        except Exception as e:
             raise TweepError(e)
 
     def get_xauth_access_token(self, username, password):
@@ -148,7 +129,7 @@ class OAuthHandler(AuthHandler):
             resp = urlopen(Request(url, data=request.to_postdata()))
             self.access_token = oauth.OAuthToken.from_string(resp.read())
             return self.access_token
-        except Exception, e:
+        except Exception as e:
             raise TweepError(e)
 
     def get_username(self):

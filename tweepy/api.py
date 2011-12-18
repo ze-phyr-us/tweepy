@@ -16,8 +16,8 @@ class API(object):
 
     def __init__(self, auth_handler=None,
             host='api.twitter.com', search_host='search.twitter.com',
-             cache=None, secure=False, api_root='/1', search_root='',
-            retry_count=0, retry_delay=0, retry_errors=None,
+             cache=None, secure=True, api_root='/1', search_root='',
+            retry_count=1, retry_delay=0, retry_errors=None,
             parser=None):
         self.auth = auth_handler
         self.host = host
@@ -26,7 +26,7 @@ class API(object):
         self.search_root = search_root
         self.cache = cache
         self.secure = secure
-        self.retry_count = retry_count
+        self.retry_count = max(1,retry_count)
         self.retry_delay = retry_delay
         self.retry_errors = retry_errors
         self.parser = parser or ModelParser()
@@ -315,7 +315,7 @@ class API(object):
                 payload_type = 'user',
                 require_auth = True
             )(self)
-        except TweepError, e:
+        except TweepError as e:
             if e.response and e.response.status == 401:
                 return False
             raise
@@ -719,7 +719,7 @@ class API(object):
         try:
             if os.path.getsize(filename) > (max_size * 1024):
                 raise TweepError('File is too big, must be less than 700kb.')
-        except os.error, e:
+        except os.error as e:
             raise TweepError('Unable to access file')
 
         # image must be gif, jpeg, or png

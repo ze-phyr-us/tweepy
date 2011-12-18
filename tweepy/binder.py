@@ -2,14 +2,21 @@
 # Copyright 2009-2010 Joshua Roesslein
 # See LICENSE for details.
 
-import httplib
 import urllib
 import time
 import re
 
-from tweepy.error import TweepError
-from tweepy.utils import convert_to_utf8_str
-from tweepy.models import Model
+from .error import TweepError
+from .oauth import convert_to_utf8_str, native_str
+from .utils import ispy3
+from .models import Model
+
+if ispy3:
+    from http import client as httplib
+    from urllib.parse import urlencode
+else:
+    import httplib
+    from urllib import urlencode
 
 re_path_template = re.compile('{\w+}')
 
@@ -105,7 +112,7 @@ def bind_api(**config):
             # Build the request URL
             url = self.api_root + self.path
             if len(self.parameters):
-                url = '%s?%s' % (url, urllib.urlencode(self.parameters))
+                url = '%s?%s' % (url, urlencode(self.parameters))
 
             # Query the cache if one is available
             # and this request uses a GET method.
@@ -126,7 +133,13 @@ def bind_api(**config):
             # Continue attempting request until successful
             # or maximum number of retries is reached.
             retries_performed = 0
-            while retries_performed < self.retry_count + 1:
+            while retries_performed < self.retry_count:
+                # Sleep before retrying request again
+                if retries_performed:
+                    conn.close()
+                    time.sleep(self.retry_delay)
+                retries_performed += 1
+                
                 # Open connection
                 # FIXME: add timeout
                 if self.api.secure:
@@ -143,9 +156,10 @@ def bind_api(**config):
 
                 # Execute request
                 try:
-                    conn.request(self.method, url, headers=self.headers, body=self.post_data)
+                    conn.request(self.method, url, headers = self.headers,
+                                 body = self.post_data)
                     resp = conn.getresponse()
-                except Exception, e:
+                except Exception as e:
                     raise TweepError('Failed to send request: %s' % e)
 
                 # Exit request loop if non-retry error code
@@ -154,9 +168,6 @@ def bind_api(**config):
                 else:
                     if resp.status == 200: break
 
-                # Sleep before retrying request again
-                time.sleep(self.retry_delay)
-                retries_performed += 1
 
             # If an error was returned, throw an exception
             self.api.last_response = resp
@@ -168,7 +179,7 @@ def bind_api(**config):
                 raise TweepError(error_msg, resp)
 
             # Parse the response payload
-            result = self.api.parser.parse(self, resp.read())
+            result = self.api.parser.parse(self, native_str(resp.read()))
 
             conn.close()
 
@@ -180,7 +191,6 @@ def bind_api(**config):
 
 
     def _call(api, *args, **kargs):
-
         method = APIMethod(api, args, kargs)
         return method.execute()
 

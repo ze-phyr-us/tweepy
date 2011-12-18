@@ -2,7 +2,7 @@
 # Copyright 2009-2010 Joshua Roesslein
 # See LICENSE for details.
 
-import httplib
+import json
 from socket import timeout
 from threading import Thread
 from time import sleep
@@ -12,8 +12,7 @@ from tweepy.models import Status
 from tweepy.api import API
 from tweepy.error import TweepError
 
-from tweepy.utils import import_simplejson
-json = import_simplejson()
+from .binder import httplib
 
 STREAM_VERSION = 1
 
@@ -123,7 +122,7 @@ class Stream(object):
                     break
                 conn.close()
                 sleep(self.snooze_time)
-            except Exception, exception:
+            except Exception as exception:
                 # any other exception is fatal, so kill loop
                 break
 

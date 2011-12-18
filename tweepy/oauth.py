@@ -21,15 +21,50 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-
+import sys
 import cgi
 import urllib
 import time
 import random
-import urlparse
 import hmac
 import binascii
+import hashlib
 
+if sys.version_info > (3,0):
+    from urllib.parse import urlparse, urlunparse, quote, unquote
+    
+    def convert_to_utf8_str(arg):
+        if isinstance(arg, str):
+            arg = arg.encode('utf-8')
+        elif not isinstance(arg, bytes):
+            arg = str(arg).encode('utf-8')
+        return arg
+    
+    def native_str(s):
+        if isinstance(s,bytes):
+            return s.decode('utf-8')
+        return s
+    
+    iteritems = lambda x : x.items()
+else:
+    from urlparse import urlparse, urlunparse
+    from urllib import quote, unquote
+    range = xrange
+    
+    def convert_to_utf8_str(arg):
+        # written by Michael Norton (http://docondev.blogspot.com/)
+        if isinstance(arg, unicode):
+            arg = arg.encode('utf-8')
+        elif not isinstance(arg, str):
+            arg = str(arg)
+        return arg
+
+    def native_str(s):
+        if isinstance(s,unicode):
+            return s.encode('utf-8')
+        return s
+    
+    iteritems = lambda x : x.iteritems()
 
 VERSION = '1.0' # Hi Blaine!
 HTTP_METHOD = 'GET'
@@ -47,14 +82,7 @@ def build_authenticate_header(realm=''):
 
 def escape(s):
     """Escape a URL including any /."""
-    return urllib.quote(s, safe='~')
-
-def _utf8_str(s):
-    """Convert unicode to utf-8."""
-    if isinstance(s, unicode):
-        return s.encode("utf-8")
-    else:
-        return str(s)
+    return quote(s, safe='~')
 
 def generate_timestamp():
     """Get seconds since epoch (UTC)."""
@@ -115,13 +143,13 @@ class OAuthToken(object):
     def get_callback_url(self):
         if self.callback and self.verifier:
             # Append the oauth_verifier.
-            parts = urlparse.urlparse(self.callback)
+            parts = urlparse(self.callback)
             scheme, netloc, path, params, query, fragment = parts[:6]
             if query:
                 query = '%s&oauth_verifier=%s' % (query, self.verifier)
             else:
                 query = 'oauth_verifier=%s' % self.verifier
-            return urlparse.urlunparse((scheme, netloc, path, params,
+            return urlunparse((scheme, netloc, path, params,
                 query, fragment))
         return self.callback
 
@@ -193,7 +221,7 @@ class OAuthRequest(object):
     def get_nonoauth_parameters(self):
         """Get any non-OAuth parameters."""
         parameters = {}
-        for k, v in self.parameters.iteritems():
+        for k, v in iteritems(self.parameters):
             # Ignore oauth parameters.
             if k.find('oauth_') < 0:
                 parameters[k] = v
@@ -204,7 +232,7 @@ class OAuthRequest(object):
         auth_header = 'OAuth realm="%s"' % realm
         # Add the oauth parameters.
         if self.parameters:
-            for k, v in self.parameters.iteritems():
+            for k, v in iteritems(self.parameters):
                 if k[:6] == 'oauth_':
                     auth_header += ', %s="%s"' % (k, escape(str(v)))
         return {'Authorization': auth_header}
@@ -212,7 +240,7 @@ class OAuthRequest(object):
     def to_postdata(self):
         """Serialize as post data for a POST request."""
         return '&'.join(['%s=%s' % (escape(str(k)), escape(str(v))) \
-            for k, v in self.parameters.iteritems()])
+            for k, v in iteritems(self.parameters)])
 
     def to_url(self):
         """Serialize as a URL for a GET request."""
@@ -227,8 +255,9 @@ class OAuthRequest(object):
         except:
             pass
         # Escape key values before sorting.
-        key_values = [(escape(_utf8_str(k)), escape(_utf8_str(v))) \
-            for k,v in params.items()]
+        key_values = [(escape(convert_to_utf8_str(k)),\
+                       escape(convert_to_utf8_str(v)))\
+                                for k,v in params.items()]
         # Sort lexicographically, first after key, then after value.
         key_values.sort()
         # Combine key value pairs into a string.
@@ -240,7 +269,7 @@ class OAuthRequest(object):
 
     def get_normalized_http_url(self):
         """Parses the URL and rebuilds it to be scheme://host/path."""
-        parts = urlparse.urlparse(self.http_url)
+        parts = urlparse(self.http_url)
         scheme, netloc, path = parts[:3]
         # Exclude default port numbers.
         if scheme == 'http' and netloc[-3:] == ':80':
@@ -255,8 +284,8 @@ class OAuthRequest(object):
         self.set_parameter('oauth_signature_method',
             signature_method.get_name())
         # Set the signature.
-        self.set_parameter('oauth_signature',
-            self.build_signature(signature_method, consumer, token))
+        signature = self.build_signature(signature_method, consumer, token)
+        self.set_parameter('oauth_signature',signature.decode('utf-8'))
 
     def build_signature(self, signature_method, consumer, token):
         """Calls the build signature method within the signature method."""
@@ -288,7 +317,7 @@ class OAuthRequest(object):
             parameters.update(query_params)
 
         # URL parameters.
-        param_str = urlparse.urlparse(http_url)[4] # query
+        param_str = urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)
         parameters.update(url_params)
 
@@ -361,7 +390,7 @@ class OAuthRequest(object):
     def _split_url_string(param_str):
         """Turn URL string into parameters."""
         parameters = cgi.parse_qs(param_str, keep_blank_values=False)
-        for k, v in parameters.iteritems():
+        for k, v in iteritems(parameters):
             parameters[k] = urllib.unquote(v[0])
         return parameters
     _split_url_string = staticmethod(_split_url_string)
@@ -623,17 +652,9 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
     def build_signature(self, oauth_request, consumer, token):
         """Builds the base signature string."""
         key, raw = self.build_signature_base_string(oauth_request, consumer,
-            token)
-
-        # HMAC object.
-        try:
-            import hashlib # 2.5
-            hashed = hmac.new(key, raw, hashlib.sha1)
-        except:
-            import sha # Deprecated
-            hashed = hmac.new(key, raw, sha)
-
-        # Calculate the digest base 64.
+                                                    token)
+        hashed = hmac.new(convert_to_utf8_str(key),
+                          convert_to_utf8_str(raw), hashlib.sha1)
         return binascii.b2a_base64(hashed.digest())[:-1]
 
 

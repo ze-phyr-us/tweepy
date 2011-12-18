@@ -7,20 +7,26 @@ from tweepy import *
 
 """Configurations"""
 # Must supply twitter account credentials for tests
-username = ''
-password = ''
 consumer_key = ''
 consumer_secret = ''
+
+access_key = ''
+access_secret = ''
 
 """Unit tests"""
 
 
-class TweepyAPITests(unittest.TestCase):
+class TweepyTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.api = API(BasicAuthHandler(username, password))
-        self.api.retry_count = 2
+        auth = OAuthHandler(consumer_key,consumer_secret)
+        auth.set_access_token(access_key,access_secret)
+        self.api = API(auth)
+        self.api.retry_count = 1
         self.api.retry_delay = 5
+
+
+class TweepyAPITests(TweepyTestCase):
 
     def testpublictimeline(self):
         self.api.public_timeline()
@@ -95,6 +101,7 @@ class TweepyAPITests(unittest.TestCase):
 
     def testsendanddestroydirectmessage(self):
         # send
+        username = self.api.me().screen_name
         sent_dm = self.api.send_direct_message(username, text='test message')
         self.assertEqual(sent_dm.text, 'test message')
         self.assertEqual(sent_dm.sender.screen_name, username)
@@ -136,9 +143,9 @@ class TweepyAPITests(unittest.TestCase):
     def testratelimitstatus(self):
         self.api.rate_limit_status()
 
-    def testsetdeliverydevice(self):
-        self.api.set_delivery_device('im')
-        self.api.set_delivery_device('none')
+    #def testsetdeliverydevice(self):
+    #    self.api.set_delivery_device('im')
+    #    self.api.set_delivery_device('none')
 
     def testupdateprofilecolors(self):
         original = self.api.me()
@@ -273,12 +280,8 @@ class TweepyAPITests(unittest.TestCase):
         self.api.nearby_places(lat=30.267370168467806, long=-97.74261474609375) # Austin, TX, USA
         self.api.reverse_geocode(lat=30.267370168467806, long=-97.74261474609375) # Austin, TX, USA
 
-class TweepyCursorTests(unittest.TestCase):
 
-    def setUp(self):
-        self.api = API(BasicAuthHandler(username, password))
-        self.api.retry_count = 2
-        self.api.retry_delay = 5
+class TweepyCursorTests(TweepyTestCase):
 
     def testpagecursoritems(self):
         items = list(Cursor(self.api.user_timeline).items())
@@ -308,14 +311,14 @@ class TweepyCursorTests(unittest.TestCase):
         pages = list(Cursor(self.api.followers, 'twitter').pages(5))
         self.assert_(len(pages) == 5)
 
+
 class TweepyAuthTests(unittest.TestCase):
 
     def testoauth(self):
-        auth = OAuthHandler(self.consumer_key, self.consumer_secret)
-
+        auth = OAuthHandler(consumer_key, consumer_secret)
         # test getting access token
         auth_url = auth.get_authorization_url()
-        print 'Please authorize: ' + auth_url
+        print('Please authorize: ' + auth_url)
         verifier = raw_input('PIN: ').strip()
         self.assert_(len(verifier) > 0)
         access_token = auth.get_access_token(verifier)
@@ -324,14 +327,6 @@ class TweepyAuthTests(unittest.TestCase):
         # build api object test using oauth
         api = API(auth)
         s = api.update_status('test %i' % random.randint(0, 1000))
-        api.destroy_status(s.id)
-
-    def testbasicauth(self):
-        auth = BasicAuthHandler(username, password)
-
-        # test accessing twitter API
-        api = API(auth)
-        s = api.update_status('test %i' % random.randint(1, 1000))
         api.destroy_status(s.id)
 
 
@@ -377,6 +372,7 @@ class TweepyCacheTests(unittest.TestCase):
         self._run_tests()
         self.cache.flush()
         os.rmdir('cache_test_dir')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -4,9 +4,15 @@
 
 from datetime import datetime
 import time
-import htmlentitydefs
 import re
 import locale
+import sys
+ispy3 = sys.version_info > (3,0)
+
+if ispy3:
+    from html import entities as htmlentities
+else:
+    import htmlentitydefs as htmlentities     
 
 
 def parse_datetime(string):
@@ -61,36 +67,12 @@ def unescape_html(text):
         else:
             # named entity
             try:
-                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
+                text = unichr(htmlentities.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
         return text # leave as is
     return re.sub("&#?\w+;", fixup, text)
 
-
-def convert_to_utf8_str(arg):
-    # written by Michael Norton (http://docondev.blogspot.com/)
-    if isinstance(arg, unicode):
-        arg = arg.encode('utf-8')
-    elif not isinstance(arg, str):
-        arg = str(arg)
-    return arg
-
-
-
-def import_simplejson():
-    try:
-        import simplejson as json
-    except ImportError:
-        try:
-            import json  # Python 2.6+
-        except ImportError:
-            try:
-                from django.utils import simplejson as json  # Google App Engine
-            except ImportError:
-                raise ImportError, "Can't load a json library"
-
-    return json
 
 def list_to_csv(item_list):
     if item_list:
