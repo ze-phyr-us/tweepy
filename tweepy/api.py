@@ -175,7 +175,6 @@ class API(object):
         path = '/users/lookup.json',
         payload_type = 'user', payload_list = True,
         allowed_param = ['user_id', 'screen_name'],
-        require_auth = True
     )
 
     """ Get the authenticated user """
@@ -698,6 +697,7 @@ class API(object):
     )
 
     """ geo/nearby_places """
+    # listed as deprecated on twitter's API documents
     nearby_places = bind_api(
         path = '/geo/nearby_places.json',
         payload_type = 'json',
@@ -709,6 +709,13 @@ class API(object):
         path = '/geo/id/{id}.json',
         payload_type = 'json',
         allowed_param = ['id']
+    )
+
+    """ geo/search """
+    geo_search = bind_api(
+        path = '/geo/search.json',
+        payload_type = 'json',
+        allowed_param = ['lat', 'long', 'query', 'ip', 'granularity', 'accuracy', 'max_results', 'contained_within']
     )
 
     """ Internal use only """
