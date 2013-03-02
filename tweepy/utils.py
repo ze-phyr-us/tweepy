@@ -6,15 +6,15 @@ from datetime import datetime
 import time
 import re
 import locale
-import sys
-ispy3 = sys.version_info > (3,0)
 
-if ispy3:
+try:
     from html import entities as htmlentities
     from urllib.parse import quote
-else:
+except ImportError:  # Python < 3
     import htmlentitydefs as htmlentities
     from urllib import quote
+
+from six import string_types, text_type
 
 
 def parse_datetime(string):
@@ -75,6 +75,28 @@ def unescape_html(text):
         return text # leave as is
     return re.sub("&#?\w+;", fixup, text)
 
+
+def convert_to_utf8_str(arg):
+    if not isinstance(arg, string_types):
+        arg = str(arg)
+    if isinstance(arg, text_type):
+        return arg.encode('utf-8')
+    return arg
+
+
+def import_simplejson():
+    try:
+        import simplejson as json
+    except ImportError:
+        try:
+            import json  # Python 2.6+
+        except ImportError:
+            try:
+                from django.utils import simplejson as json  # Google App Engine
+            except ImportError:
+                raise ImportError("Can't load a json library")
+
+    return json
 
 def list_to_csv(item_list):
     if item_list:

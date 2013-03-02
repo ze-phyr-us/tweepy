@@ -7,15 +7,38 @@ import base64
 from tweepy import oauth
 from tweepy.error import TweepError
 from tweepy.api import API
-from tweepy.utils import ispy3
 
-if ispy3:
+try:
     from urllib.request import Request, urlopen
-else:
+except ImportError:  # Python < 3
     from urllib2 import Request, urlopen    
 
 
-class OAuthHandler(object):
+class AuthHandler(object):
+
+    def apply_auth(self, url, method, headers, parameters):
+        """Apply authentication headers to request"""
+        raise NotImplementedError
+
+    def get_username(self):
+        """Return the username of the authenticated user"""
+        raise NotImplementedError
+
+
+class BasicAuthHandler(AuthHandler):
+
+    def __init__(self, username, password):
+        self.username = username
+        self._b64up = base64.b64encode('%s:%s' % (username, password))
+
+    def apply_auth(self, url, method, headers, parameters):
+        headers['Authorization'] = 'Basic %s' % self._b64up
+
+    def get_username(self):
+        return self.username
+
+
+class OAuthHandler(AuthHandler):
     """OAuth authentication handler"""
 
     OAUTH_HOST = 'api.twitter.com'

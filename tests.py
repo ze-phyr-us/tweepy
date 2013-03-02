@@ -18,9 +18,6 @@ oauth_token_secret = os.environ.get('ACCESS_SECRET', '')
 
 test_tweet_id = '266367358078169089'
 
-access_key = ''
-access_secret = ''
-
 """Unit tests"""
 
 class TweepyErrorTests(unittest.TestCase):
@@ -36,7 +33,7 @@ class TweepyErrorTests(unittest.TestCase):
         self.assertEqual(e.reason, e2.reason)
         self.assertEqual(e.response, e2.response)
 
-class TweepyTestCase(unittest.TestCase):
+class TweepyAPITests(unittest.TestCase):
 
     def setUp(self):
         auth = OAuthHandler(oauth_consumer_key, oauth_consumer_secret)
@@ -119,7 +116,6 @@ class TweepyTestCase(unittest.TestCase):
 
     def testsendanddestroydirectmessage(self):
         # send
-        username = self.api.me().screen_name
         sent_dm = self.api.send_direct_message(username, text='test message')
         self.assertEqual(sent_dm.text, 'test message')
         self.assertEqual(sent_dm.sender.screen_name, username)
@@ -323,6 +319,7 @@ class TweepyTestCase(unittest.TestCase):
         self.assertTrue(place_name_in_list('Austin, TX',
             self.api.reverse_geocode(lat=30.267370168467806, long= -97.74261474609375))) # Austin, TX, USA
 
+class TweepyCursorTests(unittest.TestCase):
 
     def setUp(self):
         auth = OAuthHandler(oauth_consumer_key, oauth_consumer_secret)
@@ -358,7 +355,6 @@ class TweepyTestCase(unittest.TestCase):
 
         pages = list(Cursor(self.api.followers_ids, 'twitter').pages(5))
         self.assert_(len(pages) == 5)
-
 
 class TweepyAuthTests(unittest.TestCase):
 
@@ -421,7 +417,6 @@ class TweepyCacheTests(unittest.TestCase):
         self._run_tests()
         self.cache.flush()
         os.rmdir('cache_test_dir')
-
 
 if __name__ == '__main__':
     unittest.main()

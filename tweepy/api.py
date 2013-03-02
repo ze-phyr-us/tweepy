@@ -26,7 +26,7 @@ class API(object):
         self.search_root = search_root
         self.cache = cache
         self.secure = secure
-        self.retry_count = max(1,retry_count)
+        self.retry_count = retry_count
         self.retry_delay = retry_delay
         self.retry_errors = retry_errors
         self.parser = parser or ModelParser()

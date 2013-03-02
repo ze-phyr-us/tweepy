@@ -21,50 +21,20 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-import sys
 import cgi
 import urllib
 import time
 import random
 import hmac
 import binascii
-import hashlib
 
-if sys.version_info > (3,0):
+try:
     from urllib.parse import urlparse, urlunparse, quote, unquote
-    
-    def convert_to_utf8_str(arg):
-        if isinstance(arg, str):
-            arg = arg.encode('utf-8')
-        elif not isinstance(arg, bytes):
-            arg = str(arg).encode('utf-8')
-        return arg
-    
-    def native_str(s):
-        if isinstance(s,bytes):
-            return s.decode('utf-8')
-        return s
-    
-    iteritems = lambda x : x.items()
-else:
+except ImportError:  # Python < 3
     from urlparse import urlparse, urlunparse
     from urllib import quote, unquote
-    range = xrange
-    
-    def convert_to_utf8_str(arg):
-        # written by Michael Norton (http://docondev.blogspot.com/)
-        if isinstance(arg, unicode):
-            arg = arg.encode('utf-8')
-        elif not isinstance(arg, str):
-            arg = str(arg)
-        return arg
 
-    def native_str(s):
-        if isinstance(s,unicode):
-            return s.encode('utf-8')
-        return s
-    
-    iteritems = lambda x : x.iteritems()
+from tweepy.utils import convert_to_utf8_str
 
 VERSION = '1.0' # Hi Blaine!
 HTTP_METHOD = 'GET'
@@ -166,7 +136,7 @@ class OAuthToken(object):
         """ Returns a token from something like:
         oauth_token_secret=xxx&oauth_token=xxx
         """
-        params = cgi.parse_qs(s, keep_blank_values=False)
+        params = cgi.parse_qs(s.decode('ascii'), keep_blank_values=False)
         key = params['oauth_token'][0]
         secret = params['oauth_token_secret'][0]
         token = OAuthToken(key, secret)
@@ -221,7 +191,7 @@ class OAuthRequest(object):
     def get_nonoauth_parameters(self):
         """Get any non-OAuth parameters."""
         parameters = {}
-        for k, v in iteritems(self.parameters):
+        for k, v in self.parameters.items():
             # Ignore oauth parameters.
             if k.find('oauth_') < 0:
                 parameters[k] = v
@@ -232,7 +202,7 @@ class OAuthRequest(object):
         auth_header = 'OAuth realm="%s"' % realm
         # Add the oauth parameters.
         if self.parameters:
-            for k, v in iteritems(self.parameters):
+            for k, v in self.parameters.items():
                 if k[:6] == 'oauth_':
                     auth_header += ', %s="%s"' % (k, escape(str(v)))
         return {'Authorization': auth_header}
@@ -240,7 +210,7 @@ class OAuthRequest(object):
     def to_postdata(self):
         """Serialize as post data for a POST request."""
         return '&'.join(['%s=%s' % (escape(str(k)), escape(str(v))) \
-            for k, v in iteritems(self.parameters)])
+            for k, v in self.parameters.items()])
 
     def to_url(self):
         """Serialize as a URL for a GET request."""
@@ -390,7 +360,7 @@ class OAuthRequest(object):
     def _split_url_string(param_str):
         """Turn URL string into parameters."""
         parameters = cgi.parse_qs(param_str, keep_blank_values=False)
-        for k, v in iteritems(parameters):
+        for k, v in parameters.items():
             parameters[k] = urllib.unquote(v[0])
         return parameters
     _split_url_string = staticmethod(_split_url_string)
@@ -652,9 +622,17 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
     def build_signature(self, oauth_request, consumer, token):
         """Builds the base signature string."""
         key, raw = self.build_signature_base_string(oauth_request, consumer,
-                                                    token)
-        hashed = hmac.new(convert_to_utf8_str(key),
-                          convert_to_utf8_str(raw), hashlib.sha1)
+            token)
+
+        # HMAC object.
+        try:
+            import hashlib # 2.5
+            hashed = hmac.new(convert_to_utf8_str(key), convert_to_utf8_str(raw), hashlib.sha1)
+        except:
+            import sha # Deprecated
+            hashed = hmac.new(convert_to_utf8_str(key), convert_to_utf8_str(raw), sha)
+
+        # Calculate the digest base 64.
         return binascii.b2a_base64(hashed.digest())[:-1]
 
 

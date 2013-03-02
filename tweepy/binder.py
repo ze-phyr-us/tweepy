@@ -2,21 +2,20 @@
 # Copyright 2009-2010 Joshua Roesslein
 # See LICENSE for details.
 
-import urllib
-import time
 import re
 
-from .error import TweepError
-from .oauth import convert_to_utf8_str, native_str
-from .utils import ispy3
-from .models import Model
+from tweepy.error import TweepError
+from tweepy.oauth import convert_to_utf8_str
+from tweepy.models import Model
 
-if ispy3:
+try:
     from http import client as httplib
     from urllib.parse import quote, urlencode
-else:
+except ImportError:  # Python < 3
     import httplib
     from urllib import quote, urlencode
+
+from six import text_type
 
 re_path_template = re.compile('{\w+}')
 
@@ -80,7 +79,7 @@ def bind_api(**config):
                     continue
 
                 try:
-                    self.parameters[self.allowed_param[idx]] = convert_to_utf8_str(arg)
+                    self.parameters[self.allowed_param[idx]] = text_type(arg)
                 except IndexError:
                     raise TweepError('Too many parameters supplied!')
 
@@ -90,7 +89,7 @@ def bind_api(**config):
                 if k in self.parameters:
                     raise TweepError('Multiple values for parameter %s supplied!' % k)
 
-                self.parameters[k] = convert_to_utf8_str(arg)
+                self.parameters[k] = text_type(arg)
 
         def build_path(self):
             for variable in re_path_template.findall(self.path):
@@ -133,25 +132,13 @@ def bind_api(**config):
             # Continue attempting request until successful
             # or maximum number of retries is reached.
             retries_performed = 0
-            while retries_performed < self.retry_count:
-                # Sleep before retrying request again
-                if retries_performed:
-                    conn.close()
-                    time.sleep(self.retry_delay)
-                retries_performed += 1
-                
+            while retries_performed < self.retry_count + 1:
                 # Open connection
                 # FIXME: add timeout
                 if self.api.secure:
                     conn = httplib.HTTPSConnection(self.host)
                 else:
                     conn = httplib.HTTPConnection(self.host)
-
-                if self.method == "POST":
-                    if self.post_data:
-                        self.headers["Content-Length"] = len(self.post_data)
-                    else:
-                        self.headers["Content-Length"] = "0"
 
                 # Apply authentication
                 if self.api.auth:
@@ -162,8 +149,7 @@ def bind_api(**config):
 
                 # Execute request
                 try:
-                    conn.request(self.method, url, headers = self.headers,
-                                 body = self.post_data)
+                    conn.request(self.method, url, headers=self.headers, body=self.post_data)
                     resp = conn.getresponse()
                 except Exception as e:
                     raise TweepError('Failed to send request: %s' % e)
@@ -185,7 +171,7 @@ def bind_api(**config):
                 raise TweepError(error_msg, resp)
 
             # Parse the response payload
-            result = self.api.parser.parse(self, native_str(resp.read()))
+            result = self.api.parser.parse(self, resp.read().decode('utf-8'))
 
             conn.close()
 
@@ -197,6 +183,7 @@ def bind_api(**config):
 
 
     def _call(api, *args, **kargs):
+
         method = APIMethod(api, args, kargs)
         return method.execute()
 

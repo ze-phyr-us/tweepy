@@ -2,17 +2,21 @@
 # Copyright 2009-2010 Joshua Roesslein
 # See LICENSE for details.
 
-import json
 from socket import timeout
 from threading import Thread
 from time import sleep
+
+try:
+    from http import client as httplib
+except ImportError:  # Python < 3
+    import httplib
 
 from tweepy.models import Status
 from tweepy.api import API
 from tweepy.error import TweepError
 
-from .binder import httplib
-from .utils import urlencode_noplus
+from tweepy.utils import import_simplejson, urlencode_noplus
+json = import_simplejson()
 
 STREAM_VERSION = '1.1'
 
