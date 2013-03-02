@@ -13,10 +13,10 @@ from .models import Model
 
 if ispy3:
     from http import client as httplib
-    from urllib.parse import urlencode
+    from urllib.parse import quote, urlencode
 else:
     import httplib
-    from urllib import urlencode
+    from urllib import quote, urlencode
 
 re_path_template = re.compile('{\w+}')
 
@@ -101,7 +101,7 @@ def bind_api(**config):
                     value = self.api.auth.get_username()
                 else:
                     try:
-                        value = urllib.quote(self.parameters[name])
+                        value = quote(self.parameters[name])
                     except KeyError:
                         raise TweepError('No parameter value found for path variable: %s' % name)
                     del self.parameters[name]
