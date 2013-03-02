@@ -61,15 +61,15 @@ def unescape_html(text):
             # character reference
             try:
                 if text[:3] == "&#x":
-                    return unichr(int(text[3:-1], 16))
+                    return chr(int(text[3:-1], 16))
                 else:
-                    return unichr(int(text[2:-1]))
+                    return chr(int(text[2:-1]))
             except ValueError:
                 pass
         else:
             # named entity
             try:
-                text = unichr(htmlentities.name2codepoint[text[1:-1]])
+                text = chr(htmlentities.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
         return text # leave as is
