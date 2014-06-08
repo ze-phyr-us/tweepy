@@ -76,7 +76,7 @@ class OAuthHandler(AuthHandler):
             )
             request.sign_request(self._sigmethod, self._consumer, None)
             resp = urlopen(Request(url, headers=request.to_header()))
-            return oauth.OAuthToken.from_string(resp.read())
+            return oauth.OAuthToken.from_string(resp.read().decode('utf-8'))
         except Exception as e:
             raise TweepError(e)
 
@@ -123,7 +123,7 @@ class OAuthHandler(AuthHandler):
 
             # send request
             resp = urlopen(Request(url, headers=request.to_header()))
-            self.access_token = oauth.OAuthToken.from_string(resp.read())
+            self.access_token = oauth.OAuthToken.from_string(resp.read().decode('utf-8'))
             return self.access_token
         except Exception as e:
             raise TweepError(e)
@@ -149,7 +149,7 @@ class OAuthHandler(AuthHandler):
             request.sign_request(self._sigmethod, self._consumer, None)
 
             resp = urlopen(Request(url, data=request.to_postdata()))
-            self.access_token = oauth.OAuthToken.from_string(resp.read())
+            self.access_token = oauth.OAuthToken.from_string(resp.read().decode('utf-8'))
             return self.access_token
         except Exception as e:
             raise TweepError(e)
