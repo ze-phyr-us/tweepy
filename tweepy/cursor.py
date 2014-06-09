@@ -43,6 +43,8 @@ class BaseIterator(object):
     def next(self):
         raise NotImplementedError
 
+    __next__ = next
+
     def prev(self):
         raise NotImplementedError
 
@@ -68,6 +70,8 @@ class CursorIterator(BaseIterator):
             raise StopIteration
         self.count += 1
         return data
+
+    __next__ = next
 
     def prev(self):
         if self.prev_cursor == 0:
@@ -97,6 +101,8 @@ class IdIterator(BaseIterator):
         self.since_id = data.since_id
         return data
 
+    __next__ = next
+
     def prev(self):
         """Fetch a set of items with IDs greater than current set."""
         since_id = self.max_id
@@ -119,6 +125,8 @@ class PageIterator(BaseIterator):
         if len(items) == 0 or (self.limit > 0 and self.current_page > self.limit):
             raise StopIteration
         return items
+
+    __next__ = next
 
     def prev(self):
         if (self.current_page == 1):
@@ -145,6 +153,8 @@ class ItemIterator(BaseIterator):
         self.page_index += 1
         self.count += 1
         return self.current_page[self.page_index]
+
+    __next__ = next
 
     def prev(self):
         if self.current_page is None:
