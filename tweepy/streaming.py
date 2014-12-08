@@ -125,7 +125,7 @@ class StreamListener(object):
         https://dev.twitter.com/docs/streaming-apis/messages#Disconnect_messages_disconnect
         """
         return
-    
+
     def on_warning(self, notice):
         """Called when a disconnection warning message arrives"""
         return
@@ -403,9 +403,9 @@ class Stream(object):
             raise TweepError('Stream object already connected!')
         self.url = '/%s/statuses/filter.json' % STREAM_VERSION
         if follow:
-            self.session.params['follow'] = u','.join(follow).encode(encoding)
+            self.session.params['follow'] = u','.join(follow) #.encode(encoding) # UGLY HOTFIX, Py3 ONLY
         if track:
-            self.session.params['track'] = u','.join(track).encode(encoding)
+            self.session.params['track'] = u','.join(track) #.encode(encoding) # UGLY HOTFIX, Py3 ONLY
         if locations and len(locations) > 0:
             if len(locations) % 4 != 0:
                 raise TweepError("Wrong number of locations points, "
